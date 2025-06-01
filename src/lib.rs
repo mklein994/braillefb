@@ -99,6 +99,23 @@ const CHARS: [char; 256] = [
     '⣷', '⣸', '⣹', '⣺', '⣻', '⣼', '⣽', '⣾', '⣿',
 ];
 
+const OCTANTS: [char; 256] = [
+    ' ', '𜺨', '𜴀', '▘', '𜴉', '𜴊', '🯦', '𜴍', '𜺫', '🮂', '𜴁', '𜴂', '𜴋', '𜴌', '𜴎', '𜴏', '𜴃', '𜴄', '𜴆',
+    '𜴇', '𜴐', '𜴑', '𜴔', '𜴕', '▝', '𜴅', '𜴈', '▀', '𜴒', '𜴓', '𜴖', '𜴗', '𜴘', '𜴙', '𜴜', '𜴝', '𜴧', '𜴨',
+    '𜴫', '𜴬', '𜴚', '𜴛', '𜴞', '𜴟', '𜴩', '𜴪', '𜴭', '𜴮', '🯧', '𜴠', '𜴣', '𜴤', '𜴯', '𜴰', '𜴳', '𜴴', '𜴡',
+    '𜴢', '𜴥', '𜴦', '𜴱', '𜴲', '𜴵', '🮅', '𜺣', '𜴶', '𜴹', '𜴺', '▖', '𜵅', '𜵈', '▌', '𜴷', '𜴸', '𜴻', '𜴼',
+    '𜵆', '𜵇', '𜵉', '𜵊', '𜴽', '𜴾', '𜵁', '𜵂', '𜵋', '𜵌', '𜵎', '𜵏', '𜴿', '𜵀', '𜵃', '𜵄', '▞', '𜵍', '𜵐',
+    '▛', '𜵑', '𜵒', '𜵕', '𜵖', '𜵡', '𜵢', '𜵥', '𜵦', '𜵓', '𜵔', '𜵗', '𜵘', '𜵣', '𜵤', '𜵧', '𜵨', '𜵙', '𜵚',
+    '𜵝', '𜵞', '𜵩', '𜵪', '𜵭', '𜵮', '𜵛', '𜵜', '𜵟', '𜵠', '𜵫', '𜵬', '𜵯', '𜵰', '𜺠', '𜵱', '𜵴', '𜵵', '𜶀',
+    '𜶁', '𜶄', '𜶅', '𜵲', '𜵳', '𜵶', '𜵷', '𜶂', '𜶃', '𜶆', '𜶇', '𜵸', '𜵹', '𜵼', '𜵽', '𜶈', '𜶉', '𜶌', '𜶍',
+    '𜵺', '𜵻', '𜵾', '𜵿', '𜶊', '𜶋', '𜶎', '𜶏', '▗', '𜶐', '𜶓', '▚', '𜶜', '𜶝', '𜶠', '𜶡', '𜶑', '𜶒', '𜶔',
+    '𜶕', '𜶞', '𜶟', '𜶢', '𜶣', '𜶖', '𜶗', '𜶙', '𜶚', '𜶤', '𜶥', '𜶨', '𜶩', '▐', '𜶘', '𜶛', '▜', '𜶦', '𜶧',
+    '𜶪', '𜶫', '▂', '𜶬', '𜶯', '𜶰', '𜶻', '𜶼', '𜶿', '𜷀', '𜶭', '𜶮', '𜶱', '𜶲', '𜶽', '𜶾', '𜷁', '𜷂', '𜶳',
+    '𜶴', '𜶷', '𜶸', '𜷃', '𜷄', '𜷇', '𜷈', '𜶵', '𜶶', '𜶹', '𜶺', '𜷅', '𜷆', '𜷉', '𜷊', '𜷋', '𜷌', '𜷏', '𜷐',
+    '▄', '𜷛', '𜷞', '▙', '𜷍', '𜷎', '𜷑', '𜷒', '𜷜', '𜷝', '𜷟', '𜷠', '𜷓', '𜷔', '𜷗', '𜷘', '𜷡', '𜷢', '▆',
+    '𜷤', '𜷕', '𜷖', '𜷙', '𜷚', '▟', '𜷣', '𜷥', '█',
+];
+
 /// A framebuffer that takes a `&[bool]` slice and returns 2x4 "dot" (pixel) [braille `char`s][1].
 ///
 /// [1]: https://en.wikipedia.org/wiki/Braille_Patterns
@@ -131,6 +148,14 @@ pub struct Framebuffer<'a> {
     height: usize,
     x_chars_count: usize,
     y_chars_count: usize,
+    style: FramebufferStyle,
+}
+
+#[derive(Default, Debug, Clone, Copy)]
+pub enum FramebufferStyle {
+    #[default]
+    Braille,
+    Octants,
 }
 
 impl<'a> Framebuffer<'a> {
@@ -159,7 +184,13 @@ impl<'a> Framebuffer<'a> {
             height,
             x_chars_count,
             y_chars_count,
+            style: FramebufferStyle::default(),
         }
+    }
+
+    pub fn with_style(mut self, style: FramebufferStyle) -> Self {
+        self.style = style;
+        self
     }
 
     /// Get the nth braille character in the framebuffer.
@@ -195,6 +226,7 @@ impl<'a> Framebuffer<'a> {
                 y_offset,
                 self.width,
                 self.height,
+                self.style,
             )),
             Offsets::Linebreak => Some(&'\n'),
             Offsets::End => None,
@@ -342,6 +374,7 @@ impl<'a, 'i> Iterator for Iter<'a, 'i> {
                     y_offset,
                     self.inner.width,
                     self.inner.height,
+                    self.inner.style,
                 ))
             }
             Offsets::Linebreak => {
@@ -374,11 +407,30 @@ impl<'a, 'i> Iterator for Iter<'a, 'i> {
 /// );
 /// ```
 pub fn to_char(f: [bool; 8]) -> char {
-    *get_char(&f, 0, 0, CHAR_WIDTH, CHAR_HEIGHT)
+    *get_char(&f, 0, 0, CHAR_WIDTH, CHAR_HEIGHT, FramebufferStyle::Braille)
+}
+
+/// Converts a single 2x4 1-bit array into an octant `char`.
+///
+/// # Example
+///
+/// ```
+/// assert_eq!(
+///     '𜶍',
+///     braillefb::to_char_octants([
+///         true, false,
+///         true, true,
+///         true, false,
+///         false, true,
+///     ])
+/// );
+/// ```
+pub fn to_char_octants(f: [bool; 8]) -> char {
+    *get_char(&f, 0, 0, CHAR_WIDTH, CHAR_HEIGHT, FramebufferStyle::Octants)
 }
 
 // The x/y offsets are combined with the BIT_OFFSETS to create a u8 in the order that a
-// UTF-8 braille character is represented
+// UTF-8 braille character or octant character is represented
 //
 // 1 4
 // 2 5
@@ -393,6 +445,7 @@ fn get_char(
     y_offset: usize,
     width: usize,
     height: usize,
+    style: FramebufferStyle,
 ) -> &'static char {
     let mut n: u8 = 0;
     for (x, y) in BIT_OFFSETS {
@@ -404,12 +457,15 @@ fn get_char(
         }
         n |= framebuffer[xx + yy * width] as u8;
     }
-    &CHARS[n as usize]
+    match style {
+        FramebufferStyle::Braille => &CHARS[n as usize],
+        FramebufferStyle::Octants => &OCTANTS[n as usize],
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{get_char, to_char, Framebuffer, Offsets};
+    use super::{get_char, to_char, Framebuffer, FramebufferStyle, Offsets};
 
     macro_rules! framebuffer {
         (#) => {true};
@@ -553,10 +609,22 @@ mod tests {
             # # #
         ];
 
-        assert_eq!(&'⠇', get_char(&framebuffer, 0, 0, 3, 5));
-        assert_eq!(&'⠅', get_char(&framebuffer, 2, 0, 3, 5));
-        assert_eq!(&'⠉', get_char(&framebuffer, 0, 4, 3, 5));
-        assert_eq!(&'⠁', get_char(&framebuffer, 2, 4, 3, 5));
+        assert_eq!(
+            &'⠇',
+            get_char(&framebuffer, 0, 0, 3, 5, FramebufferStyle::Braille)
+        );
+        assert_eq!(
+            &'⠅',
+            get_char(&framebuffer, 2, 0, 3, 5, FramebufferStyle::Braille)
+        );
+        assert_eq!(
+            &'⠉',
+            get_char(&framebuffer, 0, 4, 3, 5, FramebufferStyle::Braille)
+        );
+        assert_eq!(
+            &'⠁',
+            get_char(&framebuffer, 2, 4, 3, 5, FramebufferStyle::Braille)
+        );
     }
 
     #[test]
